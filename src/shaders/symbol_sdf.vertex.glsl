@@ -4,6 +4,7 @@ attribute vec4 a_pos_offset;
 attribute vec2 a_texture_pos;
 attribute vec4 a_data;
 
+#pragma mapbox: define mediump float size
 #pragma mapbox: define lowp vec4 fill_color
 #pragma mapbox: define lowp vec4 halo_color
 #pragma mapbox: define lowp float opacity
@@ -13,6 +14,7 @@ attribute vec4 a_data;
 // matrix is for the vertex position.
 uniform mat4 u_matrix;
 
+uniform bool u_is_text;
 uniform mediump float u_zoom;
 uniform bool u_rotate_with_map;
 uniform bool u_pitch_with_map;
@@ -21,13 +23,24 @@ uniform mediump float u_bearing;
 uniform mediump float u_aspect_ratio;
 uniform vec2 u_extrude_scale;
 
+uniform bool u_is_size_composite;
+uniform mediump float u_adjusted_size; // used when size is a camera function
+uniform mediump float u_adjusted_size_t; // used when size is a composite function
+
 uniform vec2 u_texsize;
 
 varying vec2 v_tex;
 varying vec2 v_fade_tex;
 varying float v_gamma_scale;
 
+// Dummy overload so that evaluate_zoom_function_1(a_size, ...) call below
+// compiles when {text,icon}-size is not a composite function.
+float evaluate_zoom_function_1(float size, float adjusted_size_t) {
+    return -1.0;
+}
+
 void main() {
+    #pragma mapbox: initialize mediump float size
     #pragma mapbox: initialize lowp vec4 fill_color
     #pragma mapbox: initialize lowp vec4 halo_color
     #pragma mapbox: initialize lowp float opacity
@@ -43,8 +56,23 @@ void main() {
     mediump float a_minzoom = a_zoom[0];
     mediump float a_maxzoom = a_zoom[1];
 
-    // u_zoom is the current zoom level adjusted for the change in font size
-    mediump float z = 2.0 - step(a_minzoom, u_zoom) - (1.0 - step(a_maxzoom, u_zoom));
+    float fontScale = u_is_text ? size / 24.0 : size;
+
+    // In order to accommodate placing labels around corners in
+    // symbol-placement: line, each glyph in a label could have multiple layout
+    // "instances", only one of which should be shown at a given zoom level.
+    // The min/max zoom assigned to each instance is based on the font size at
+    // the vector tile's zoom level, which might be different than at the
+    // currently rendered zoom level if text-size is zoom-dependent.
+    // Thus, we compensate for this difference by calculating an adjustment
+    // based on the scale of rendered text size relative to layout text size.
+    mediump float adjustedSize = u_is_size_composite
+        ?  evaluate_zoom_function_1(a_size, u_adjusted_size_t) / 10.0
+        : u_adjusted_size;
+    mediump float zoomAdjust = log2(size / adjustedSize);
+    mediump float adjustedZoom = (u_zoom - zoomAdjust) * 10.0;
+    // result: z = 0 if a_minzoom <= adjustedZoom < a_maxzoom, and 1 otherwise
+    mediump float z = 2.0 - step(a_minzoom, adjustedZoom) - (1.0 - step(a_maxzoom, adjustedZoom));
 
     // pitch-alignment: map
     // rotation-alignment: map | viewport
@@ -54,7 +82,7 @@ void main() {
         lowp float acos = cos(angle);
         mat2 RotationMatrix = mat2(acos, asin, -1.0 * asin, acos);
         vec2 offset = RotationMatrix * a_offset;
-        vec2 extrude = u_extrude_scale * (offset / 64.0);
+        vec2 extrude = fontScale * u_extrude_scale * (offset / 64.0);
         gl_Position = u_matrix * vec4(a_pos + extrude, 0, 1);
         gl_Position.z += z * gl_Position.w;
     // pitch-alignment: viewport
@@ -78,13 +106,13 @@ void main() {
         mat2 RotationMatrix = mat2(acos, -1.0 * asin, asin, acos);
 
         vec2 offset = RotationMatrix * (vec2((1.0-pitchfactor)+(pitchfactor*cos(angle*2.0)), 1.0) * a_offset);
-        vec2 extrude = u_extrude_scale * (offset / 64.0);
+        vec2 extrude = fontScale * u_extrude_scale * (offset / 64.0);
         gl_Position = u_matrix * vec4(a_pos, 0, 1) + vec4(extrude, 0, 0);
         gl_Position.z += z * gl_Position.w;
     // pitch-alignment: viewport
     // rotation-alignment: viewport
     } else {
-        vec2 extrude = u_extrude_scale * (a_offset / 64.0);
+        vec2 extrude = fontScale * u_extrude_scale * (a_offset / 64.0);
         gl_Position = u_matrix * vec4(a_pos, 0, 1) + vec4(extrude, 0, 0);
     }
 

@@ -17,12 +17,74 @@
 <script src='/dist/mapbox-gl-dev.js'></script>
 <script src='/debug/access_token_generated.js'></script>
 <script>
+var style = {
+    "version": 8,
+    "metadata": {
+        "test": {
+            "width": 64,
+            "height": 64
+        }
+    },
+    "sources": {
+        "geojson": {
+            "type": "geojson",
+            "data": {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "type": "Feature",
+                        "properties": { "x": 0 },
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": [ -10, 0 ]
+                        }
+                    },
+                    {
+                        "type": "Feature",
+                        "properties": { "x": 5 },
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": [
+                                10,
+                                0
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    },
+    "glyphs": "mapbox://fonts/mapbox/{fontstack}/{range}.pbf",
+    "layers": [
+        {
+            "id": "symbol",
+            "type": "symbol",
+            "source": "geojson",
+            "layout": {
+                "text-field": "A",
+                "text-font": [
+                    "Open Sans Semibold",
+                    "Arial Unicode MS Bold"
+                ],
+                "text-size": {
+                    "property": "x",
+                    "stops": [
+                        [ { "value": 0, "zoom": 0 }, 12 ],
+                        [ { "value": 10, "zoom": 0 }, 24 ],
+                        [ { "value": 0, "zoom": 4 }, 48 ],
+                        [ { "value": 10, "zoom": 4 }, 96 ]
+                    ]
+                }
+            }
+        }
+    ]
+};
 
 var map = window.map = new mapboxgl.Map({
     container: 'map',
-    zoom: 12.5,
-    center: [-77.01866, 38.888],
-    style: 'mapbox://styles/mapbox/streets-v10',
+    zoom: 0,
+    center: [0, 0],
+    style: style,
     hash: true
 });
 

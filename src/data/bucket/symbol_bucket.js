@@ -42,6 +42,7 @@ const symbolInterfaces = {
         layoutVertexArrayType: layoutVertexArrayType,
         elementArrayType: elementArrayType,
         paintAttributes: [
+            {name: 'a_size',       property: 'text-size', type: 'Uint16', multiplier: 10},
             {name: 'a_fill_color', property: 'text-color', type: 'Uint8'},
             {name: 'a_halo_color', property: 'text-halo-color', type: 'Uint8'},
             {name: 'a_halo_width', property: 'text-halo-width', type: 'Uint16', multiplier: 10},
@@ -53,6 +54,7 @@ const symbolInterfaces = {
         layoutVertexArrayType: layoutVertexArrayType,
         elementArrayType: elementArrayType,
         paintAttributes: [
+            {name: 'a_size',       property: 'icon-size', type: 'Uint16', multiplier: 10},
             {name: 'a_fill_color', property: 'icon-color', type: 'Uint8'},
             {name: 'a_halo_color', property: 'icon-halo-color', type: 'Uint8'},
             {name: 'a_halo_width', property: 'icon-halo-width', type: 'Uint16', multiplier: 10},
@@ -138,8 +140,6 @@ class SymbolBucket {
         this.index = options.index;
         this.sdfIcons = options.sdfIcons;
         this.iconsNeedLinear = options.iconsNeedLinear;
-        this.adjustedTextSize = options.adjustedTextSize;
-        this.adjustedIconSize = options.adjustedIconSize;
         this.fontstack = options.fontstack;
 
         if (options.arrays) {
@@ -245,8 +245,6 @@ class SymbolBucket {
             layerIds: this.layers.map((l) => l.id),
             sdfIcons: this.sdfIcons,
             iconsNeedLinear: this.iconsNeedLinear,
-            adjustedTextSize: this.adjustedTextSize,
-            adjustedIconSize: this.adjustedIconSize,
             fontstack: this.fontstack,
             arrays: util.mapObject(this.arrays, (a) => a.isEmpty() ? null : a.serialize(transferables))
         };
@@ -269,15 +267,6 @@ class SymbolBucket {
 
     prepare(stacks, icons) {
         this.symbolInstances = [];
-
-        // To reduce the number of labels that jump around when zooming we need
-        // to use a text-size value that is the same for all zoom levels.
-        // This calculates text-size at a high zoom level so that all tiles can
-        // use the same value when calculating anchor positions.
-        this.adjustedTextMaxSize = this.layers[0].getLayoutValue('text-size', {zoom: 18});
-        this.adjustedTextSize = this.layers[0].getLayoutValue('text-size', {zoom: this.zoom + 1});
-        this.adjustedIconMaxSize = this.layers[0].getLayoutValue('icon-size', {zoom: 18});
-        this.adjustedIconSize = this.layers[0].getLayoutValue('icon-size', {zoom: this.zoom + 1});
 
         const tileSize = 512 * this.overscaling;
         this.tilePixelRatio = EXTENT / tileSize;
@@ -368,13 +357,21 @@ class SymbolBucket {
     }
 
     addFeature(feature, shapedTextOrientations, shapedIcon) {
+        // To reduce the number of labels that jump around when zooming we need
+        // to use a text-size value that is the same for all zoom levels.
+        // This calculates text-size at a high zoom level so that all tiles can
+        // use the same value when calculating anchor positions.
+        const adjustedTextSize = this.layers[0].getLayoutValue('text-size', {zoom: this.zoom + 1}, feature.properties);
+        const adjustedIconSize = this.layers[0].getLayoutValue('icon-size', {zoom: this.zoom + 1}, feature.properties);
+        const adjustedTextMaxSize = this.layers[0].getLayoutValue('text-size', {zoom: 18}, feature.properties);
+
         const layout = this.layers[0].layout,
             glyphSize = 24,
-            fontScale = this.adjustedTextSize / glyphSize,
-            textMaxSize = this.adjustedTextMaxSize !== undefined ? this.adjustedTextMaxSize : this.adjustedTextSize,
+            fontScale = adjustedTextSize / glyphSize,
+            textMaxSize = adjustedTextMaxSize !== undefined ? adjustedTextMaxSize : adjustedTextSize,
             textBoxScale = this.tilePixelRatio * fontScale,
             textMaxBoxScale = this.tilePixelRatio * textMaxSize / glyphSize,
-            iconBoxScale = this.tilePixelRatio * this.adjustedIconSize,
+            iconBoxScale = this.tilePixelRatio * adjustedIconSize,
             symbolMinDistance = this.tilePixelRatio * layout['symbol-spacing'],
             avoidEdges = layout['symbol-avoid-edges'],
             textPadding = layout['text-padding'] * this.tilePixelRatio,
