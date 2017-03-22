@@ -96,11 +96,14 @@ class ProgramConfiguration {
 
         pragmas.define.push(`varying {precision} {type} ${name};`);
 
-        // Pick the index of the first offset to add to the buffers.
-        let numStops = 0;
+        // Pick the index of the first zoom stop to add to the buffers
         const zoomLevels = layer.getPaintValueStopZoomLevels(attribute.property);
-        while (numStops < zoomLevels.length && zoomLevels[numStops] < zoom) numStops++;
-        const stopOffset = Math.max(0, Math.min(zoomLevels.length - 4, numStops - 2));
+        let stopOffset = 0;
+        if (zoomLevels.length > 4) {
+            while (stopOffset < (zoomLevels.length - 2) &&
+                zoomLevels[stopOffset] < zoom) stopOffset++;
+        }
+
 
         const tName = `u_${name}_t`;
 
