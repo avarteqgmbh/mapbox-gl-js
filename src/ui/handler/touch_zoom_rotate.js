@@ -2,6 +2,7 @@
 
 const DOM = require('../../util/dom');
 const util = require('../../util/util');
+const Point = require('point-geometry');
 const window = require('../../util/window');
 
 const inertiaLinearity = 0.15,
@@ -54,6 +55,8 @@ class TouchZoomRotateHandler {
         this._el.addEventListener('touchstart', this._onStart, false);
         this._enabled = true;
         this._aroundCenter = options && options.around === 'center';
+        this._oneFinger = options && options.oneFinger === true;
+        this._oneFingerPosition = options && options.oneFingerPosition;
     }
 
     /**
@@ -91,7 +94,14 @@ class TouchZoomRotateHandler {
     }
 
     _onStart(e) {
-        if (e.touches.length !== 2) return;
+        if ((e.touches.length > 2 && this._oneFinger) ||
+            (e.touches.length !== 2 && !this._oneFinger)) return;
+
+        this._startedWithOneFinger = (this._oneFinger && e.touches.length == 1);
+
+        if (this._startedWithOneFinger) {
+            e.touches[1] = this._oneFingerTouch();
+        }
 
         const p0 = DOM.mousePos(this._el, e.touches[0]),
             p1 = DOM.mousePos(this._el, e.touches[1]);
@@ -107,7 +117,12 @@ class TouchZoomRotateHandler {
     }
 
     _onMove(e) {
-        if (e.touches.length !== 2) return;
+        if ((e.touches.length > 2 && this._oneFinger) ||
+            (e.touches.length !== 2 && !this._oneFinger)) return;
+
+        if (this._startedWithOneFinger) {
+            e.touches[1] = this._oneFingerTouch();
+        }
 
         const p0 = DOM.mousePos(this._el, e.touches[0]),
             p1 = DOM.mousePos(this._el, e.touches[1]),
@@ -205,6 +220,18 @@ class TouchZoomRotateHandler {
             easing: inertiaEasing,
             around: this._aroundCenter ? map.getCenter() : map.unproject(p)
         }, { originalEvent: e });
+    }
+
+    _oneFingerTouch() {
+        var point = Point.convert(this._oneFingerPosition || [
+                this._map._container.offsetWidth / 2,
+                this._map._container.offsetHeight / 2
+            ]);
+
+        return {
+            clientX: point.x,
+            clientY: point.y
+        };
     }
 
     _drainInertiaBuffer() {
