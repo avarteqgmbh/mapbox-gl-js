@@ -202,6 +202,10 @@
     "clusterMaxZoom": {
       "type": "number",
       "doc": "Max zoom on which to cluster points if clustering is enabled. Defaults to one zoom less than maxzoom (so that last zoom features are not clustered)."
+    },
+    "clusterMapProperties": {
+      "type": "array",
+      "doc": "Map and reduce properties into an array"
     }
   },
   "source_video": {
