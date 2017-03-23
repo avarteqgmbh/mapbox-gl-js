@@ -132,7 +132,28 @@ class GeoJSONWorkerSource extends VectorTileWorkerSource {
     _indexData(data, params, callback) {
         try {
             if (params.cluster) {
-                callback(null, supercluster(params.superclusterOptions).load(data.features));
+                var superclusterOptions = params.superclusterOptions;
+
+                if (params.clusterMapProperties) {
+                    superclusterOptions.initial = function () {
+                        var initial = {}
+
+                        params.clusterMapProperties.forEach(function (key) {
+                            initial[key] = [];
+                        });
+
+                        return initial;
+                    };
+                    superclusterOptions.reduce = function (accumulated, props) {
+                        params.clusterMapProperties.forEach(function (key) {
+                            if (props[key]) {
+                                accumulated[key].push(props[key]);
+                            }
+                        });
+                    };
+                }
+
+                callback(null, supercluster(superclusterOptions).load(data.features));
             } else {
                 callback(null, geojsonvt(data, params.geojsonVtOptions));
             }

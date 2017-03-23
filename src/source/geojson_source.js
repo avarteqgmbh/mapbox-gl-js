@@ -86,6 +86,7 @@ class GeoJSONSource extends Evented {
         this.workerOptions = util.extend({
             source: this.id,
             cluster: options.cluster || false,
+            clusterMapProperties: options.clusterMapProperties || false,
             geojsonVtOptions: {
                 buffer: (options.buffer !== undefined ? options.buffer : 128) * scale,
                 tolerance: (options.tolerance !== undefined ? options.tolerance : 0.375) * scale,
