@@ -4,6 +4,7 @@ const util = require('../util/util');
 const browser = require('../util/browser');
 const window = require('../util/window');
 const DOM = require('../util/dom');
+const ajax = require('../util/ajax');
 
 const Style = require('../style/style');
 const AnimationLoop = require('../style/animation_loop');
@@ -101,20 +102,20 @@ const defaultOptions = {
  *   Keep in mind that these classes are used for controlling a style layer's paint properties, so are *not* reflected
  *   in an HTML element's `class` attribute. To learn more about Mapbox style classes, read about
  *   [Layers](https://www.mapbox.com/mapbox-gl-style-spec/#layers) in the style specification.
- * @param {boolean} [options.attributionControl=true] If `true`, an [AttributionControl](#AttributionControl) will be added to the map.
- * @param {boolean} [options.logoPosition='bottom-left'] Position of the Mapbox wordmark on the map. Valid options are ['top-left','top-right', 'bottom-left', 'bottom-right'].
+ * @param {boolean} [options.attributionControl=true] If `true`, an {@link AttributionControl} will be added to the map.
+ * @param {string} [options.logoPosition='bottom-left'] A string representing the position of the Mapbox wordmark on the map. Valid options are `top-left`,`top-right`, `bottom-left`, `bottom-right`.
  * @param {boolean} [options.failIfMajorPerformanceCaveat=false] If `true`, map creation will fail if the performance of Mapbox
  *   GL JS would be dramatically worse than expected (i.e. a software renderer would be used).
  * @param {boolean} [options.preserveDrawingBuffer=false] If `true`, the map's canvas can be exported to a PNG using `map.getCanvas().toDataURL()`. This is `false` by default as a performance optimization.
  * @param {boolean} [options.refreshExpiredTiles=true] If `false`, the map won't attempt to re-request tiles once they expire per their HTTP `cacheControl`/`expires` headers.
  * @param {LngLatBoundsLike} [options.maxBounds] If set, the map will be constrained to the given bounds.
- * @param {boolean|Object} [options.scrollZoom=true] If `true`, the "scroll to zoom" interaction is enabled. An `Object` value is passed as options to [`ScrollZoomHandler#enable`](#ScrollZoomHandler#enable).
- * @param {boolean} [options.boxZoom=true] If `true`, the "box zoom" interaction is enabled (see [`BoxZoomHandler`](#BoxZoomHandler)).
- * @param {boolean} [options.dragRotate=true] If `true`, the "drag to rotate" interaction is enabled (see [`DragRotateHandler`](#DragRotateHandler)).
- * @param {boolean} [options.dragPan=true] If `true`, the "drag to pan" interaction is enabled (see [`DragPanHandler`](#DragPanHandler)).
- * @param {boolean} [options.keyboard=true] If `true`, keyboard shortcuts are enabled (see [`KeyboardHandler`](#KeyboardHandler)).
- * @param {boolean} [options.doubleClickZoom=true] If `true`, the "double click to zoom" interaction is enabled (see [`DoubleClickZoomHandler`](#DoubleClickZoomHandler)).
- * @param {boolean|Object} [options.touchZoomRotate=true] If `true`, the "pinch to rotate and zoom" interaction is enabled. An `Object` value is passed as options to [`TouchZoomRotateHandler#enable`](#TouchZoomRotateHandler#enable).
+ * @param {boolean|Object} [options.scrollZoom=true] If `true`, the "scroll to zoom" interaction is enabled. An `Object` value is passed as options to {@link ScrollZoomHandler#enable}.
+ * @param {boolean} [options.boxZoom=true] If `true`, the "box zoom" interaction is enabled (see {@link BoxZoomHandler}).
+ * @param {boolean} [options.dragRotate=true] If `true`, the "drag to rotate" interaction is enabled (see {@link DragRotateHandler}).
+ * @param {boolean} [options.dragPan=true] If `true`, the "drag to pan" interaction is enabled (see {@link DragPanHandler}).
+ * @param {boolean} [options.keyboard=true] If `true`, keyboard shortcuts are enabled (see {@link KeyboardHandler}).
+ * @param {boolean} [options.doubleClickZoom=true] If `true`, the "double click to zoom" interaction is enabled (see {@link DoubleClickZoomHandler}).
+ * @param {boolean|Object} [options.touchZoomRotate=true] If `true`, the "pinch to rotate and zoom" interaction is enabled. An `Object` value is passed as options to {@link TouchZoomRotateHandler#enable}.
  * @param {boolean} [options.trackResize=true]  If `true`, the map will automatically resize when the browser window resizes.
  * @param {LngLatLike} [options.center=[0, 0]] The inital geographical centerpoint of the map. If `center` is not specified in the constructor options, Mapbox GL JS will look for it in the map's style object. If it is not specified in the style, either, it will default to `[0, 0]`.
  * @param {number} [options.zoom=0] The initial zoom level of the map. If `zoom` is not specified in the constructor options, Mapbox GL JS will look for it in the map's style object. If it is not specified in the style, either, it will default to `0`.
@@ -224,9 +225,9 @@ class Map extends Camera {
     }
 
     /**
-     * Adds a [`IControl`](#IControl) to the map, calling `control.onAdd(this)`.
+     * Adds a {@link IControl} to the map, calling `control.onAdd(this)`.
      *
-     * @param {IControl} control The [`IControl`](#IControl) to add.
+     * @param {IControl} control The {@link IControl} to add.
      * @param {string} [position] position on the map to which the control will be added.
      * Valid values are `'top-left'`, `'top-right'`, `'bottom-left'`, and `'bottom-right'`. Defaults to `'top-right'`.
      * @returns {Map} `this`
@@ -252,7 +253,7 @@ class Map extends Camera {
     /**
      * Removes the control from the map.
      *
-     * @param {IControl} control The [`IControl`](#IControl) to remove.
+     * @param {IControl} control The {@link IControl} to remove.
      * @returns {Map} `this`
      */
     removeControl(control) {
@@ -491,26 +492,156 @@ class Map extends Camera {
     getMaxZoom() { return this.transform.maxZoom; }
 
     /**
-     * Returns a [`Point`](#Point) representing pixel coordinates, relative to the map's `container`,
+     * Returns a {@link Point} representing pixel coordinates, relative to the map's `container`,
      * that correspond to the specified geographical location.
      *
      * @param {LngLatLike} lnglat The geographical location to project.
-     * @returns {Point} The [`Point`](#Point) corresponding to `lnglat`, relative to the map's `container`.
+     * @returns {Point} The {@link Point} corresponding to `lnglat`, relative to the map's `container`.
      */
     project(lnglat) {
         return this.transform.locationPoint(LngLat.convert(lnglat));
     }
 
     /**
-     * Returns a [`LngLat`](#LngLat) representing geographical coordinates that correspond
+     * Returns a {@link LngLat} representing geographical coordinates that correspond
      * to the specified pixel coordinates.
      *
      * @param {PointLike} point The pixel coordinates to unproject.
-     * @returns {LngLat} The [`LngLat`](#LngLat) corresponding to `point`.
+     * @returns {LngLat} The {@link LngLat} corresponding to `point`.
      * @see [Show polygon information on click](https://www.mapbox.com/mapbox-gl-js/example/polygon-popup-on-click/)
      */
     unproject(point) {
         return this.transform.pointLocation(Point.convert(point));
+    }
+
+    /**
+     * Adds a listener for events of a specified type.
+     *
+     * @method
+     * @name on
+     * @memberof Map
+     * @instance
+     * @param {string} type The event type to add a listen for.
+     * @param {Function} listener The function to be called when the event is fired.
+     *   The listener function is called with the data object passed to `fire`,
+     *   extended with `target` and `type` properties.
+     * @returns {Map} `this`
+     */
+
+    /**
+     * Adds a listener for events of a specified type occurring on features in a specified style layer.
+     *
+     * @param {string} type The event type to listen for; one of `'mousedown'`, `'mouseup'`, `'click'`, `'dblclick'`,
+     * `'mousemove'`, `'mouseenter'`, `'mouseleave'`, `'mouseover'`, `'mouseout'`, `'contextmenu'`, `'touchstart'`,
+     * `'touchend'`, or `'touchcancel'`. `mouseenter` and `mouseover` events are triggered when the cursor enters
+     * a visible portion of the specified layer from outside that layer or outside the map canvas. `mouseleave`
+     * and `mouseout` events are triggered when the cursor leaves a visible portion of the specified layer, or leaves
+     * the map canvas.
+     * @param {string} layer The ID of a style layer. Only events whose location is within a visible
+     * feature in this layer will trigger the listener. The event will have a `features` property containing
+     * an array of the matching features.
+     * @param {Function} listener The function to be called when the event is fired.
+     * @returns {Map} `this`
+     */
+    on(type, layer, listener) {
+        if (listener === undefined) {
+            return super.on(type, layer);
+        }
+
+        const delegatedListener = (() => {
+            if (type === 'mouseenter' || type === 'mouseover') {
+                let mousein = false;
+                const mousemove = (e) => {
+                    const features = this.queryRenderedFeatures(e.point, {layers: [layer]});
+                    if (!features.length) {
+                        mousein = false;
+                    } else if (!mousein) {
+                        mousein = true;
+                        listener.call(this, util.extend({features}, e, {type}));
+                    }
+                };
+                const mouseout = () => {
+                    mousein = false;
+                };
+                return {layer, listener, delegates: {mousemove, mouseout}};
+            } else if (type === 'mouseleave' || type === 'mouseout') {
+                let mousein = false;
+                const mousemove = (e) => {
+                    const features = this.queryRenderedFeatures(e.point, {layers: [layer]});
+                    if (features.length) {
+                        mousein = true;
+                    } else if (mousein) {
+                        mousein = false;
+                        listener.call(this, util.extend({}, e, {type}));
+                    }
+                };
+                const mouseout = (e) => {
+                    if (mousein) {
+                        mousein = false;
+                        listener.call(this, util.extend({}, e, {type}));
+                    }
+                };
+                return {layer, listener, delegates: {mousemove, mouseout}};
+            } else {
+                const delegate = (e) => {
+                    const features = this.queryRenderedFeatures(e.point, {layers: [layer]});
+                    if (features.length) {
+                        listener.call(this, util.extend({features}, e));
+                    }
+                };
+                return {layer, listener, delegates: {[type]: delegate}};
+            }
+        })();
+
+        this._delegatedListeners = this._delegatedListeners || {};
+        this._delegatedListeners[type] = this._delegatedListeners[type] || [];
+        this._delegatedListeners[type].push(delegatedListener);
+
+        for (const event in delegatedListener.delegates) {
+            this.on(event, delegatedListener.delegates[event]);
+        }
+
+        return this;
+    }
+
+    /**
+     * Removes an event listener previously added with `Map#on`.
+     *
+     * @method
+     * @name off
+     * @memberof Map
+     * @instance
+     * @param {string} type The event type previously used to install the listener.
+     * @param {Function} listener The function previously installed as a listener.
+     * @returns {Map} `this`
+     */
+
+    /**
+     * Removes an event listener for layer-specific events previously added with `Map#on`.
+     *
+     * @param {string} type The event type previously used to install the listener.
+     * @param {string} layer The layer ID previously used to install the listener.
+     * @param {Function} listener The function previously installed as a listener.
+     * @returns {Map} `this`
+     */
+    off(type, layer, listener) {
+        if (listener === undefined) {
+            return super.off(type, layer);
+        }
+
+        if (this._delegatedListeners && this._delegatedListeners[type]) {
+            const listeners = this._delegatedListeners[type];
+            for (let i = 0; i < listeners.length; i++) {
+                const delegatedListener = listeners[i];
+                if (delegatedListener.layer === layer && delegatedListener.listener === listener) {
+                    for (const event in delegatedListener.delegates) {
+                        this.off(event, delegatedListener.delegates[event]);
+                    }
+                    listeners.splice(i, 1);
+                    return this;
+                }
+            }
+        }
     }
 
     /**
@@ -520,7 +651,7 @@ class Map extends Camera {
      *
      * @param {PointLike|Array<PointLike>} [geometry] - The geometry of the query region:
      * either a single point or southwest and northeast points describing a bounding box.
-     * Omitting this parameter (i.e. calling [`Map#queryRenderedFeatures`](#Map#queryRenderedFeatures) with zero arguments,
+     * Omitting this parameter (i.e. calling {@link Map#queryRenderedFeatures} with zero arguments,
      * or with only a `parameters` argument) is equivalent to passing a bounding box encompassing the entire
      * map viewport.
      * @param {Object} [parameters]
@@ -600,6 +731,10 @@ class Map extends Camera {
             params = arguments[0];
         }
 
+        if (!this.style) {
+            return [];
+        }
+
         return this.style.queryRenderedFeatures(
             this._makeQueryGeometry(geometry),
             params,
@@ -660,7 +795,7 @@ class Map extends Camera {
      * @returns {Array<Object>} An array of [GeoJSON](http://geojson.org/)
      * [Feature objects](http://geojson.org/geojson-spec.html#feature-objects).
      *
-     * In contrast to [`Map#queryRenderedFeatures`](#Map#queryRenderedFeatures), this function
+     * In contrast to {@link Map#queryRenderedFeatures}, this function
      * returns all features matching the query parameters,
      * whether or not they are rendered by the current style (i.e. visible). The domain of the query includes all currently-loaded
      * vector tiles and GeoJSON source tiles: this function does not check tiles outside the currently
@@ -743,6 +878,16 @@ class Map extends Camera {
         }
     }
 
+     /**
+      * Returns a Boolean indicating whether the map's style is fully loaded.
+      *
+      * @returns {boolean} A Boolean indicating whether the style is fully loaded.
+      */
+    isStyleLoaded() {
+        if (!this.style) return util.warnOnce('There is no style added to the map.');
+        return this.style.loaded();
+    }
+
     /**
      * Adds a source to the map's style.
      *
@@ -777,6 +922,26 @@ class Map extends Camera {
             return;
         }
         return source.loaded();
+    }
+
+    /**
+     * Returns a Boolean indicating whether all tiles in the viewport from all sources on
+     * the style are loaded.
+     *
+     * @returns {boolean} A Boolean indicating whether all tiles are loaded.
+     */
+
+    areTilesLoaded() {
+        const sources = this.style && this.style.sourceCaches;
+        for (const id in sources) {
+            const source = sources[id];
+            const tiles = source._tiles;
+            for (const t in tiles) {
+                const tile = tiles[t];
+                if (!(tile.state === 'loaded' || tile.state === 'errored')) return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -823,6 +988,8 @@ class Map extends Camera {
      * {@link Map#error} event will be fired if there is not enough space in the
      * sprite to add this image.
      *
+     * @see [Add an icon to the map](https://www.mapbox.com/mapbox-gl-js/example/add-image/)
+     * @see [Add a generated icon to the map](https://www.mapbox.com/mapbox-gl-js/example/add-image-generated/)
      * @param {string} name The name of the image.
      * @param {HTMLImageElement|ArrayBufferView} image The image as an `HTMLImageElement` or `ArrayBufferView` (using the format of [`ImageData#data`](https://developer.mozilla.org/en-US/docs/Web/API/ImageData/data))
      * @param {Object} [options] Required if and only if passing an `ArrayBufferView`
@@ -841,6 +1008,18 @@ class Map extends Camera {
      */
     removeImage(name) {
         this.style.spriteAtlas.removeImage(name);
+    }
+
+    /**
+     * Load an image from an external URL for use with `Map#addImage`. External
+     * domains must support [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS).
+     *
+     * @param {string} url The URL of the image.
+     * @param {Function} callback Called when the image has loaded or with an error argument if there is an error.
+     * @see [Add an icon to the map](https://www.mapbox.com/mapbox-gl-js/example/add-image/)
+     */
+    loadImage(url, callback) {
+        ajax.getImage(url, callback);
     }
 
     /**
@@ -879,11 +1058,12 @@ class Map extends Camera {
     }
 
     /**
-     * Removes a layer from the map's style.
+     * Removes the layer with the given id from the map's style.
      *
-     * @param {string} id The ID of the layer to remove.
-     * @throws {Error} if no layer with the specified `id` exists.
-     * @returns {Map} `this`
+     * If no such layer exists, an `error` event is fired.
+     *
+     * @param {string} id id of the layer to remove
+     * @fires error
      */
     removeLayer(id) {
         this.style.removeLayer(id);
@@ -1435,7 +1615,7 @@ function removeNode(node) {
  *     return this._container;
  * };
  *
- * HelloWorldControl.prototype.onRemove() {
+ * HelloWorldControl.prototype.onRemove = function () {
  *      this._container.parentNode.removeChild(this._container);
  *      this._map = undefined;
  * };
@@ -1484,7 +1664,7 @@ function removeNode(node) {
  */
 
 /**
- * A [`LngLat`](#LngLat) object or an array of two numbers representing longitude and latitude.
+ * A {@link LngLat} object or an array of two numbers representing longitude and latitude.
  *
  * @typedef {(LngLat | Array<number>)} LngLatLike
  * @example
@@ -1493,7 +1673,7 @@ function removeNode(node) {
  */
 
 /**
- * A [`LngLatBounds`](#LngLatBounds) object or an array of [`LngLatLike`](#LngLatLike) objects in [sw, ne] order.
+ * A {@link LngLatBounds} object or an array of {@link LngLatLike} objects in [sw, ne] order.
  *
  * @typedef {(LngLatBounds | Array<LngLatLike>)} LngLatBoundsLike
  * @example
@@ -1513,7 +1693,7 @@ function removeNode(node) {
  */
 
 /**
- * A [`Point`](#Point) or an array of two numbers representing `x` and `y` screen coordinates in pixels.
+ * A {@link Point} or an array of two numbers representing `x` and `y` screen coordinates in pixels.
  *
  * @typedef {(Point | Array<number>)} PointLike
  */
@@ -1655,7 +1835,7 @@ function removeNode(node) {
 
 /**
  * Fired just before the map begins a transition from one
- * view to another, as the result of either user interaction or methods such as [Map#jumpTo](#Map#jumpTo).
+ * view to another, as the result of either user interaction or methods such as {@link Map#jumpTo}.
  *
  * @event movestart
  * @memberof Map
@@ -1665,7 +1845,7 @@ function removeNode(node) {
 
 /**
  * Fired repeatedly during an animated transition from one view to
- * another, as the result of either user interaction or methods such as [Map#flyTo](#Map#flyTo).
+ * another, as the result of either user interaction or methods such as {@link Map#flyTo}.
  *
  * @event move
  * @memberof Map
@@ -1675,7 +1855,7 @@ function removeNode(node) {
 
 /**
  * Fired just after the map completes a transition from one
- * view to another, as the result of either user interaction or methods such as [Map#jumpTo](#Map#jumpTo).
+ * view to another, as the result of either user interaction or methods such as {@link Map#jumpTo}.
  *
  * @event moveend
  * @memberof Map
@@ -1698,7 +1878,7 @@ function removeNode(node) {
   */
 
 /**
- * Fired when any map data loads or changes. See [`MapDataEvent`](#MapDataEvent)
+ * Fired when any map data loads or changes. See {@link MapDataEvent}
  * for more information.
  *
  * @event data
@@ -1709,7 +1889,7 @@ function removeNode(node) {
 
 /**
  * Fired when the map's style loads or changes. See
- * [`MapDataEvent`](#MapDataEvent) for more information.
+ * {@link MapDataEvent} for more information.
  *
  * @event styledata
  * @memberof Map
@@ -1719,7 +1899,7 @@ function removeNode(node) {
 
 /**
  * Fired when one of the map's sources loads or changes, including if a tile belonging
- * to a source loads or changes. See [`MapDataEvent`](#MapDataEvent) for more information.
+ * to a source loads or changes. See {@link MapDataEvent} for more information.
  *
  * @event sourcedata
  * @memberof Map
@@ -1730,7 +1910,7 @@ function removeNode(node) {
 /**
  * Fired when any map data (style, source, tile, etc) begins loading or
  * changing asyncronously. All `dataloading` events are followed by a `data`
- * or `error` event. See [`MapDataEvent`](#MapDataEvent) for more information.
+ * or `error` event. See {@link MapDataEvent} for more information.
  *
  * @event dataloading
  * @memberof Map
@@ -1741,7 +1921,7 @@ function removeNode(node) {
 /**
  * Fired when the map's style begins loading or changing asyncronously.
  * All `styledataloading` events are followed by a `styledata`
- * or `error` event. See [`MapDataEvent`](#MapDataEvent) for more information.
+ * or `error` event. See {@link MapDataEvent} for more information.
  *
  * @event styledataloading
  * @memberof Map
@@ -1752,7 +1932,7 @@ function removeNode(node) {
 /**
  * Fired when one of the map's sources begins loading or changing asyncronously.
  * All `sourcedataloading` events are followed by a `sourcedata` or `error` event.
- * See [`MapDataEvent`](#MapDataEvent) for more information.
+ * See {@link MapDataEvent} for more information.
  *
  * @event sourcedataloading
  * @memberof Map
@@ -1761,8 +1941,8 @@ function removeNode(node) {
  */
 
  /**
-  * A `MapDataEvent` object is emitted with the [`Map#data`](#Map.event:data)
-  * and [`Map#dataloading`](#Map.event:dataloading) events. Possible values for
+  * A `MapDataEvent` object is emitted with the {@link Map.event:data}
+  * and {@link Map.event:dataloading} events. Possible values for
   * `dataType`s are:
   *
   * - `'source'`: The non-tile data associated with any source
@@ -1782,7 +1962,7 @@ function removeNode(node) {
   */
 
  /**
- * Fired immediately after the map has been removed with [`Map#remove`](#Map#remove).
+ * Fired immediately after the map has been removed with {@link Map.event:remove}.
  *
  * @event remove
  * @memberof Map

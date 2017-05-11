@@ -1,4 +1,5 @@
 'use strict';
+// @flow
 
 const wrap = require('../util/util').wrap;
 
@@ -9,7 +10,7 @@ const wrap = require('../util/util').wrap;
  *
  * Note that any Mapbox GL method that accepts a `LngLat` object as an argument or option
  * can also accept an `Array` of two numbers and will perform an implicit conversion.
- * This flexible type is documented as [`LngLatLike`](#LngLatLike).
+ * This flexible type is documented as {@link LngLatLike}.
  *
  * @param {number} lng Longitude, measured in degrees.
  * @param {number} lat Latitude, measured in degrees.
@@ -21,7 +22,9 @@ const wrap = require('../util/util').wrap;
  * @see [Create a timeline animation](https://www.mapbox.com/mapbox-gl-js/example/timeline-animation/)
  */
 class LngLat {
-    constructor(lng, lat) {
+    lng: number;
+    lat: number;
+    constructor(lng: number, lat: number) {
         if (isNaN(lng) || isNaN(lat)) {
             throw new Error(`Invalid LngLat object: (${lng}, ${lat})`);
         }
@@ -43,36 +46,6 @@ class LngLat {
      */
     wrap() {
         return new LngLat(wrap(this.lng, -180, 180), this.lat);
-    }
-
-    /**
-     * Returns a new `LngLat` object wrapped to the best world to draw it provided a map `center` `LngLat`.
-     *
-     * When the map is close to the anti-meridian showing a point on world -1 or 1 is a better
-     * choice. The heuristic used is to minimize the distance from the map center to the point.
-     *
-     * Only works where the `LngLat` is wrapped with `LngLat.wrap()` and `center` is within the main world map.
-     *
-     * @param {LngLat} center Map center within the main world.
-     * @return {LngLat} The `LngLat` object in the best world to draw it for the provided map `center`.
-     * @example
-     * var ll = new mapboxgl.LngLat(170, 0);
-     * var mapCenter = new mapboxgl.LngLat(-170, 0);
-     * var snapped = ll.wrapToBestWorld(mapCenter);
-     * snapped; // = { lng: -190, lat: 0 }
-     */
-    wrapToBestWorld(center) {
-        const wrapped = new LngLat(this.lng, this.lat);
-
-        if (Math.abs(this.lng - center.lng) > 180) {
-            if (center.lng < 0) {
-                wrapped.lng -= 360;
-            } else {
-                wrapped.lng += 360;
-            }
-        }
-
-        return wrapped;
     }
 
     /**
@@ -98,30 +71,33 @@ class LngLat {
     toString() {
         return `LngLat(${this.lng}, ${this.lat})`;
     }
-}
 
-/**
- * Converts an array of two numbers to a `LngLat` object.
- *
- * If a `LngLat` object is passed in, the function returns it unchanged.
- *
- * @param {LngLatLike} input An array of two numbers to convert, or a `LngLat` object to return.
- * @returns {LngLat} A new `LngLat` object, if a conversion occurred, or the original `LngLat` object.
- * @example
- * var arr = [-73.9749, 40.7736];
- * var ll = mapboxgl.LngLat.convert(arr);
- * ll;   // = LngLat {lng: -73.9749, lat: 40.7736}
- */
-LngLat.convert = function (input) {
-    if (input instanceof LngLat) {
-        return input;
-    } else if (input && input.hasOwnProperty('lng') && input.hasOwnProperty('lat')) {
-        return new LngLat(input.lng, input.lat);
-    } else if (Array.isArray(input) && input.length === 2) {
-        return new LngLat(input[0], input[1]);
-    } else {
+    /**
+     * Converts an array of two numbers to a `LngLat` object.
+     *
+     * If a `LngLat` object is passed in, the function returns it unchanged.
+     *
+     * @param {LngLatLike} input An array of two numbers to convert, or a `LngLat` object to return.
+     * @returns {LngLat} A new `LngLat` object, if a conversion occurred, or the original `LngLat` object.
+     * @example
+     * var arr = [-73.9749, 40.7736];
+     * var ll = mapboxgl.LngLat.convert(arr);
+     * ll;   // = LngLat {lng: -73.9749, lat: 40.7736}
+     */
+    static convert(input: mixed): LngLat {
+        if (input instanceof LngLat) {
+            return input;
+        }
+        if (Array.isArray(input) && input.length === 2) {
+            return new LngLat(Number(input[0]), Number(input[1]));
+        }
+        if (!Array.isArray(input) && typeof input === 'object' && input !== null) {
+            return new LngLat(Number(input.lng), Number(input.lat));
+        }
         throw new Error("`LngLatLike` argument must be specified as a LngLat instance, an object {lng: <lng>, lat: <lat>}, or an array of [<lng>, <lat>]");
     }
-};
+}
+
+/*:: export type LngLatLike = LngLat | {lng: number, lat: number} | [number, number]; */
 
 module.exports = LngLat;

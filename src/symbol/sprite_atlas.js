@@ -21,7 +21,7 @@ class SpriteAtlas extends Evented {
         this.data = false;
         this.texture = 0; // WebGL ID
         this.filter = 0; // WebGL ID
-        this.pixelRatio = 1;
+        this.pixelRatio = browser.devicePixelRatio > 1 ? 2 : 1;
         this.dirty = true;
     }
 
@@ -52,11 +52,11 @@ class SpriteAtlas extends Evented {
             width = pixels.width;
             height = pixels.height;
             pixels = browser.getImageData(pixels);
-            pixelRatio = this.pixelRatio;
+            pixelRatio = 1;
         } else {
             width = options.width;
             height = options.height;
-            pixelRatio = options.pixelRatio || this.pixelRatio;
+            pixelRatio = options.pixelRatio || 1;
         }
 
         if (ArrayBuffer.isView(pixels)) {
@@ -64,7 +64,7 @@ class SpriteAtlas extends Evented {
         }
 
         if (!(pixels instanceof Uint32Array)) {
-            return this.fire('error', {error: new Error('Image provided in an invalid format. Supported formats are HTMLImageElement, ImageData, and ArrayBufferView.')});
+            return this.fire('error', {error: new Error('Image provided in an invalid format. Supported formats are HTMLImageElement and ArrayBufferView.')});
         }
 
         if (this.images[name]) {
@@ -81,7 +81,7 @@ class SpriteAtlas extends Evented {
             width: width / pixelRatio,
             height: height / pixelRatio,
             sdf: false,
-            pixelRatio: 1
+            pixelRatio: pixelRatio / this.pixelRatio
         };
         this.images[name] = image;
 
@@ -195,13 +195,9 @@ class SpriteAtlas extends Evented {
     }
 
     setSprite(sprite) {
-        if (sprite) {
-            this.pixelRatio = browser.devicePixelRatio > 1 ? 2 : 1;
-
-            if (this.canvas) {
-                this.canvas.width = this.width * this.pixelRatio;
-                this.canvas.height = this.height * this.pixelRatio;
-            }
+        if (sprite && this.canvas) {
+            this.canvas.width = this.width * this.pixelRatio;
+            this.canvas.height = this.height * this.pixelRatio;
         }
         this.sprite = sprite;
     }
@@ -221,6 +217,7 @@ class SpriteAtlas extends Evented {
             gl.bindTexture(gl.TEXTURE_2D, this.texture);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
             first = true;
         } else {
             gl.bindTexture(gl.TEXTURE_2D, this.texture);

@@ -7,8 +7,8 @@
       "operations": [
         [
           "addImage",
-          "marker",
-          "./image/marker.png"
+          "rocket",
+          "./image/rocket.png"
         ],
         [
           "addLayer",
@@ -17,7 +17,7 @@
             "type": "symbol",
             "source": "geometry",
             "layout": {
-              "icon-image": "marker"
+              "icon-image": "rocket"
             }
           }
         ],

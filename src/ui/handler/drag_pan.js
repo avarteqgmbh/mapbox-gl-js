@@ -55,6 +55,7 @@ class DragPanHandler {
      */
     enable() {
         if (this.isEnabled()) return;
+        this._el.classList.add('mapboxgl-touch-drag-pan');
         this._el.addEventListener('mousedown', this._onDown);
         this._el.addEventListener('touchstart', this._onDown);
         this._enabled = true;
@@ -68,6 +69,7 @@ class DragPanHandler {
      */
     disable() {
         if (!this.isEnabled()) return;
+        this._el.classList.remove('mapboxgl-touch-drag-pan');
         this._el.removeEventListener('mousedown', this._onDown);
         this._el.removeEventListener('touchstart', this._onDown);
         this._enabled = false;
@@ -212,7 +214,7 @@ class DragPanHandler {
 module.exports = DragPanHandler;
 
 /**
- * Fired when a "drag to pan" interaction starts. See [`DragPanHandler`](#DragPanHandler).
+ * Fired when a "drag to pan" interaction starts. See {@link DragPanHandler}.
  *
  * @event dragstart
  * @memberof Map
@@ -221,7 +223,7 @@ module.exports = DragPanHandler;
  */
 
 /**
- * Fired repeatedly during a "drag to pan" interaction. See [`DragPanHandler`](#DragPanHandler).
+ * Fired repeatedly during a "drag to pan" interaction. See {@link DragPanHandler}.
  *
  * @event drag
  * @memberof Map
@@ -230,7 +232,7 @@ module.exports = DragPanHandler;
  */
 
 /**
- * Fired when a "drag to pan" interaction ends. See [`DragPanHandler`](#DragPanHandler).
+ * Fired when a "drag to pan" interaction ends. See {@link DragPanHandler}.
  *
  * @event dragend
  * @memberof Map
