@@ -153,6 +153,8 @@ class GeoJSONWorkerSource extends VectorTileWorkerSource {
                                 accumulated[key].push(props[key]);
                             }
                         });
+
+                        return accumulated;
                     };
                 }
 
