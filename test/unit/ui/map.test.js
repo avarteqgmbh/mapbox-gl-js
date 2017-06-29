@@ -351,8 +351,8 @@ test('Map', (t) => {
             const map = createMap({style: style});
 
             map.on('load', () => {
-                map.on('error', (e) => {
-                    t.match(e.error.message, /There is no source with ID/);
+                map.on('error', ({ error }) => {
+                    t.match(error.message, /There is no source with ID/);
                     t.end();
                 });
                 map.isSourceLoaded('geojson');
@@ -641,6 +641,24 @@ test('Map', (t) => {
                 [bounds[1][0].toFixed(n), bounds[1][1].toFixed(n)]
             ];
         }
+
+        t.end();
+    });
+
+    t.test('#getMaxBounds', (t) => {
+        t.test('returns null when no bounds set', (t) => {
+            const map = createMap({zoom:0});
+            t.equal(map.getMaxBounds(), null);
+            t.end();
+        });
+
+        t.test('returns bounds', (t) => {
+            const map = createMap({zoom:0});
+            const bounds = [[-130.4297, 50.0642], [-61.52344, 24.20688]];
+            map.setMaxBounds(bounds);
+            t.deepEqual(map.getMaxBounds().toArray(), bounds);
+            t.end();
+        });
 
         t.end();
     });
@@ -964,8 +982,8 @@ test('Map', (t) => {
             });
 
             map.on('style.load', () => {
-                map.style.on('error', (e) => {
-                    t.match(e.error.message, /does not exist in the map\'s style and cannot be styled/);
+                map.style.on('error', ({ error }) => {
+                    t.match(error.message, /does not exist in the map\'s style and cannot be styled/);
                     t.end();
                 });
                 map.setLayoutProperty('non-existant', 'text-transform', 'lowercase');
@@ -1170,8 +1188,8 @@ test('Map', (t) => {
             });
 
             map.on('style.load', () => {
-                map.style.on('error', (e) => {
-                    t.match(e.error.message, /does not exist in the map\'s style and cannot be styled/);
+                map.style.on('error', ({ error }) => {
+                    t.match(error.message, /does not exist in the map\'s style and cannot be styled/);
                     t.end();
                 });
                 map.setPaintProperty('non-existant', 'background-color', 'red');

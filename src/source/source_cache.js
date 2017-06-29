@@ -1,4 +1,3 @@
-'use strict';
 
 const Source = require('./source');
 const Tile = require('./tile');
@@ -35,7 +34,7 @@ class SourceCache extends Evented {
 
             // for sources with mutable data, this event fires when the underlying data
             // to a source is changed. (i.e. GeoJSONSource#setData and ImageSource#serCoordinates)
-            if (this._sourceLoaded && e.dataType === "source" && e.sourceDataType === 'content') {
+            if (this._sourceLoaded && !this._paused && e.dataType === "source" && e.sourceDataType === 'content') {
                 this.reload();
                 if (this.transform) {
                     this.update(this.transform);
@@ -50,15 +49,17 @@ class SourceCache extends Evented {
         this._source = Source.create(id, options, dispatcher, this);
 
         this._tiles = {};
-        this._cache = new Cache(0, this.unloadTile.bind(this));
+        this._cache = new Cache(0, this._unloadTile.bind(this));
         this._timers = {};
         this._cacheTimers = {};
+        this._maxTileCacheSize = null;
 
         this._isIdRenderable = this._isIdRenderable.bind(this);
     }
 
     onAdd(map) {
         this.map = map;
+        this._maxTileCacheSize = map ? map._maxTileCacheSize : null;
         if (this._source && this._source.onAdd) {
             this._source.onAdd(map);
         }
@@ -95,16 +96,29 @@ class SourceCache extends Evented {
         return this._source;
     }
 
-    loadTile(tile, callback) {
+    pause() {
+        this._paused = true;
+    }
+
+    resume() {
+        if (!this._paused) return;
+        const shouldReload = this._shouldReloadOnResume;
+        this._paused = false;
+        this._shouldReloadOnResume = false;
+        if (shouldReload) this.reload();
+        if (this.transform) this.update(this.transform);
+    }
+
+    _loadTile(tile, callback) {
         return this._source.loadTile(tile, callback);
     }
 
-    unloadTile(tile) {
+    _unloadTile(tile) {
         if (this._source.unloadTile)
             return this._source.unloadTile(tile);
     }
 
-    abortTile(tile) {
+    _abortTile(tile) {
         if (this._source.abortTile)
             return this._source.abortTile(tile);
     }
@@ -137,13 +151,18 @@ class SourceCache extends Evented {
     }
 
     reload() {
+        if (this._paused) {
+            this._shouldReloadOnResume = true;
+            return;
+        }
+
         this._cache.reset();
         for (const i in this._tiles) {
-            this.reloadTile(i, 'reloading');
+            this._reloadTile(i, 'reloading');
         }
     }
 
-    reloadTile(id, state) {
+    _reloadTile(id, state) {
         const tile = this._tiles[id];
 
         // this potentially does not address all underlying
@@ -159,7 +178,7 @@ class SourceCache extends Evented {
             tile.state = state;
         }
 
-        this.loadTile(tile, this._tileLoaded.bind(this, tile, id, state));
+        this._loadTile(tile, this._tileLoaded.bind(this, tile, id, state));
     }
 
     _tileLoaded(tile, id, previousState, err) {
@@ -213,13 +232,13 @@ class SourceCache extends Evented {
      * Recursively find children of the given tile (up to maxCoveringZoom) that are already loaded;
      * adds found tiles to retain object; returns true if any child is found.
      *
-     * @param {Coordinate} coord
+     * @param {TileCoord} coord
      * @param {number} maxCoveringZoom
      * @param {boolean} retain
      * @returns {boolean} whether the operation was complete
      * @private
      */
-    findLoadedChildren(coord, maxCoveringZoom, retain) {
+    _findLoadedChildren(coord, maxCoveringZoom, retain) {
         let found = false;
 
         for (const id in this._tiles) {
@@ -256,7 +275,7 @@ class SourceCache extends Evented {
      * Find a loaded parent of the given tile (up to minCoveringZoom);
      * adds the found tile to retain object and returns the tile if found
      *
-     * @param {Coordinate} coord
+     * @param {TileCoord} coord
      * @param {number} minCoveringZoom
      * @param {boolean} retain
      * @returns {Tile} tile object
@@ -278,7 +297,8 @@ class SourceCache extends Evented {
     }
 
     /**
-     * Resizes the tile cache based on the current viewport's size.
+     * Resizes the tile cache based on the current viewport's size
+     * or the maxTileCacheSize option passed during map creation
      *
      * Larger viewports use more tiles and need larger caches. Larger viewports
      * are more likely to be found on devices with more memory and on pages where
@@ -291,7 +311,11 @@ class SourceCache extends Evented {
         const heightInTiles = Math.ceil(transform.height / transform.tileSize) + 1;
         const approxTilesInView = widthInTiles * heightInTiles;
         const commonZoomRange = 5;
-        this._cache.setMaxSize(Math.floor(approxTilesInView * commonZoomRange));
+
+        const viewDependentMaxSize = Math.floor(approxTilesInView * commonZoomRange);
+        const maxSize = typeof this._maxTileCacheSize === 'number' ? Math.min(this._maxTileCacheSize, viewDependentMaxSize) : viewDependentMaxSize;
+
+        this._cache.setMaxSize(maxSize);
     }
 
     /**
@@ -301,7 +325,8 @@ class SourceCache extends Evented {
      */
     update(transform) {
         this.transform = transform;
-        if (!this._sourceLoaded) { return; }
+        if (!this._sourceLoaded || this._paused) { return; }
+
         let i;
         let coord;
         let tile;
@@ -344,7 +369,7 @@ class SourceCache extends Evented {
 
         for (i = 0; i < visibleCoords.length; i++) {
             coord = visibleCoords[i];
-            tile = this.addTile(coord);
+            tile = this._addTile(coord);
 
             retain[coord.id] = true;
 
@@ -353,10 +378,10 @@ class SourceCache extends Evented {
 
             // The tile we require is not yet loaded.
             // Retain child or parent tiles that cover the same area.
-            if (!this.findLoadedChildren(coord, maxCoveringZoom, retain)) {
+            if (!this._findLoadedChildren(coord, maxCoveringZoom, retain)) {
                 parentTile = this.findLoadedParent(coord, minCoveringZoom, retain);
                 if (parentTile) {
-                    this.addTile(parentTile.coord);
+                    this._addTile(parentTile.coord);
                 }
             }
         }
@@ -376,12 +401,12 @@ class SourceCache extends Evented {
                 // fadeEndTime is in the future, then this tile is still
                 // fading in. Find tiles to cross-fade with it.
                 if (typeof tile.fadeEndTime === 'undefined' || tile.fadeEndTime >= Date.now()) {
-                    if (this.findLoadedChildren(coord, maxCoveringZoom, retain)) {
+                    if (this._findLoadedChildren(coord, maxCoveringZoom, retain)) {
                         retain[id] = true;
                     }
                     parentTile = this.findLoadedParent(coord, minCoveringZoom, parentsForFading);
                     if (parentTile) {
-                        this.addTile(parentTile.coord);
+                        this._addTile(parentTile.coord);
                     }
                 }
             }
@@ -401,45 +426,41 @@ class SourceCache extends Evented {
         // Remove the tiles we don't need anymore.
         const remove = util.keysDifference(this._tiles, retain);
         for (i = 0; i < remove.length; i++) {
-            this.removeTile(+remove[i]);
+            this._removeTile(+remove[i]);
         }
     }
 
     /**
      * Add a tile, given its coordinate, to the pyramid.
-     * @param {Coordinate} coord
-     * @returns {Coordinate} the coordinate.
+     * @param {TileCoord} tileCoord
+     * @returns {Tile} the added Tile.
      * @private
      */
-    addTile(coord) {
-        let tile = this._tiles[coord.id];
+    _addTile(tileCoord) {
+        let tile = this._tiles[tileCoord.id];
         if (tile)
             return tile;
 
-        const wrapped = coord.wrapped();
-        tile = this._tiles[wrapped.id];
-
-        if (!tile) {
-            tile = this._cache.get(wrapped.id);
-            if (tile) {
-                tile.redoPlacement(this._source);
-                if (this._cacheTimers[wrapped.id]) {
-                    clearTimeout(this._cacheTimers[wrapped.id]);
-                    this._cacheTimers[wrapped.id] = undefined;
-                    this._setTileReloadTimer(wrapped.id, tile);
-                }
+        tile = this._cache.get(tileCoord.id);
+        if (tile) {
+            tile.redoPlacement(this._source);
+            if (this._cacheTimers[tileCoord.id]) {
+                clearTimeout(this._cacheTimers[tileCoord.id]);
+                this._cacheTimers[tileCoord.id] = undefined;
+                this._setTileReloadTimer(tileCoord.id, tile);
             }
         }
+
         const cached = Boolean(tile);
         if (!cached) {
-            const zoom = coord.z;
+            const zoom = tileCoord.z;
             const overscaling = zoom > this._source.maxzoom ? Math.pow(2, zoom - this._source.maxzoom) : 1;
-            tile = new Tile(wrapped, this._source.tileSize * overscaling, this._source.maxzoom);
-            this.loadTile(tile, this._tileLoaded.bind(this, tile, coord.id, tile.state));
+            tile = new Tile(tileCoord, this._source.tileSize * overscaling, this._source.maxzoom);
+            this._loadTile(tile, this._tileLoaded.bind(this, tile, tileCoord.id, tile.state));
         }
 
         tile.uses++;
-        this._tiles[coord.id] = tile;
+        this._tiles[tileCoord.id] = tile;
         if (!cached) this._source.fire('dataloading', {tile: tile, coord: tile.coord, dataType: 'source'});
 
         return tile;
@@ -449,7 +470,7 @@ class SourceCache extends Evented {
         const expiryTimeout = tile.getExpiryTimeout();
         if (expiryTimeout) {
             this._timers[id] = setTimeout(() => {
-                this.reloadTile(id, 'expired');
+                this._reloadTile(id, 'expired');
                 this._timers[id] = undefined;
             }, expiryTimeout);
         }
@@ -471,7 +492,7 @@ class SourceCache extends Evented {
      * @returns {undefined} nothing
      * @private
      */
-    removeTile(id) {
+    _removeTile(id) {
         const tile = this._tiles[id];
         if (!tile)
             return;
@@ -486,14 +507,16 @@ class SourceCache extends Evented {
         if (tile.uses > 0)
             return;
 
+        tile.stopPlacementThrottler();
+
         if (tile.hasData()) {
             const wrappedId = tile.coord.wrapped().id;
             this._cache.add(wrappedId, tile);
             this._setCacheInvalidationTimer(wrappedId, tile);
         } else {
             tile.aborted = true;
-            this.abortTile(tile);
-            this.unloadTile(tile);
+            this._abortTile(tile);
+            this._unloadTile(tile);
         }
     }
 
@@ -502,8 +525,11 @@ class SourceCache extends Evented {
      * @private
      */
     clearTiles() {
+        this._shouldReloadOnResume = false;
+        this._paused = false;
+
         for (const id in this._tiles)
-            this.removeTile(id);
+            this._removeTile(id);
         this._cache.reset();
     }
 
@@ -515,7 +541,7 @@ class SourceCache extends Evented {
      * @private
      */
     tilesIn(queryGeometry) {
-        const tileResults = {};
+        const tileResults = [];
         const ids = this.getIds();
 
         let minX = Infinity;
@@ -531,6 +557,7 @@ class SourceCache extends Evented {
             maxX = Math.max(maxX, p.column);
             maxY = Math.max(maxY, p.row);
         }
+
 
         for (let i = 0; i < ids.length; i++) {
             const tile = this._tiles[ids[i]];
@@ -549,26 +576,16 @@ class SourceCache extends Evented {
                     tileSpaceQueryGeometry.push(coordinateToTilePoint(coord, tile.sourceMaxZoom, queryGeometry[j]));
                 }
 
-                let tileResult = tileResults[tile.coord.id];
-                if (tileResult === undefined) {
-                    tileResult = tileResults[tile.coord.id] = {
-                        tile: tile,
-                        coord: coord,
-                        queryGeometry: [],
-                        scale: Math.pow(2, this.transform.zoom - tile.coord.z)
-                    };
-                }
-
-                // Wrapped tiles share one tileResult object but can have multiple queryGeometry parts
-                tileResult.queryGeometry.push(tileSpaceQueryGeometry);
+                tileResults.push({
+                    tile: tile,
+                    coord: coord,
+                    queryGeometry: [tileSpaceQueryGeometry],
+                    scale: Math.pow(2, this.transform.zoom - tile.coord.z)
+                });
             }
         }
 
-        const results = [];
-        for (const t in tileResults) {
-            results.push(tileResults[t]);
-        }
-        return results;
+        return tileResults;
     }
 
     redoPlacement() {
@@ -593,7 +610,8 @@ SourceCache.maxUnderzooming = 3;
 
 /**
  * Convert a coordinate to a point in a tile's coordinate space.
- * @param {Coordinate} tileCoord
+ * @param {TileCoord} tileCoord
+ * @param {number} sourceMaxZoom
  * @param {Coordinate} coord
  * @returns {Object} position
  * @private

@@ -1,4 +1,3 @@
-'use strict';
 
 const util = require('../util/util');
 const Evented = require('../util/evented');
@@ -224,6 +223,7 @@ class Popup extends Evented {
         if (this.options.closeButton) {
             this._closeButton = DOM.create('button', 'mapboxgl-popup-close-button', this._content);
             this._closeButton.type = 'button';
+            this._closeButton.setAttribute('aria-label', 'Close popup');
             this._closeButton.innerHTML = '&#215;';
             this._closeButton.addEventListener('click', this._onClickClose);
         }

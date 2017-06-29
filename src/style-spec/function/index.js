@@ -1,4 +1,3 @@
-'use strict';
 
 const colorSpaces = require('./color_spaces');
 const parseColor = require('../util/parse_color');
@@ -196,9 +195,9 @@ function evaluateExponentialFunction(parameters, propertySpec, input) {
     const interp = interpolate[propertySpec.type] || identityFunction;
 
     if (typeof outputLower === 'function') {
-        return function() {
-            const evaluatedLower = outputLower.apply(undefined, arguments);
-            const evaluatedUpper = outputUpper.apply(undefined, arguments);
+        return function(...args) {
+            const evaluatedLower = outputLower.apply(undefined, args);
+            const evaluatedUpper = outputUpper.apply(undefined, args);
             // Special case for fill-outline-color, which has no spec default.
             if (evaluatedLower === undefined || evaluatedUpper === undefined) {
                 return undefined;

@@ -1,4 +1,3 @@
-'use strict';
 
 const ImageSource = require('./image_source');
 const window = require('../util/window');
@@ -102,7 +101,7 @@ class CanvasSource extends ImageSource {
         }
         if (this._hasInvalidDimensions()) return;
 
-        if (!this.tile) return; // not enough data for current position
+        if (Object.keys(this.tiles).length === 0) return; // not enough data for current position
         this._prepareImage(this.map.painter.gl, this.canvas, resize);
     }
 

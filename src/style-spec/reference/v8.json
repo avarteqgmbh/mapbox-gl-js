@@ -816,7 +816,8 @@
       "function": "interpolated",
       "zoom-function": true,
       "property-function": true,
-      "doc": "Scale factor for icon. 1 is original size, 3 triples the size.",
+      "units": "factor of the original icon size",
+      "doc": "Scales the original size of the icon by the provided factor. The new pixel size of the image will be the original pixel size multiplied by `icon-size`. 1 is the original size; 3 triples the size of the image.",
       "requires": [
         "icon-image"
       ],
@@ -1021,6 +1022,33 @@
           "ios": "3.5.0",
           "macos": "0.4.0"
         }
+      }
+    },
+    "icon-pitch-alignment": {
+      "type": "enum",
+      "function": "piecewise-constant",
+      "zoom-function": true,
+      "values": {
+        "map": {
+            "doc": "The icon is aligned to the plane of the map."
+        },
+        "viewport": {
+            "doc": "The icon is aligned to the plane of the viewport."
+        },
+        "auto": {
+            "doc": "Automatically matches the value of `icon-rotation-alignment`."
+        }
+      },
+      "default": "auto",
+      "doc": "Orientation of icon when map is pitched.",
+      "requires": [
+        "icon-image"
+      ],
+      "sdk-support": {
+        "basic functionality": {
+          "js": "0.39.0"
+        },
+        "data-driven styling": {}
       }
     },
     "text-pitch-alignment": {
@@ -1710,6 +1738,9 @@
         }
       },
       "transition": false,
+      "zoom-function": true,
+      "property-function": false,
+      "function": "piecewise-constant",
       "doc": "Whether extruded geometries are lit relative to the map or viewport.",
       "example": "map",
       "sdk-support": {
@@ -2192,6 +2223,7 @@
       "minimum": 0,
       "function": "interpolated",
       "zoom-function": true,
+      "property-function": true,
       "transition": true,
       "units": "pixels",
       "doc": "Stroke thickness.",

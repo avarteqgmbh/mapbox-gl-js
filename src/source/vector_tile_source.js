@@ -1,4 +1,3 @@
-'use strict';
 
 const Evented = require('../util/evented');
 const util = require('../util/util');
@@ -84,6 +83,8 @@ class VectorTileSource extends Evented {
             overscaling: overscaling,
             angle: this.map.transform.angle,
             pitch: this.map.transform.pitch,
+            cameraToCenterDistance: this.map.transform.cameraToCenterDistance,
+            cameraToTileDistance: this.map.transform.cameraToTileDistance(tile),
             showCollisionBoxes: this.map.showCollisionBoxes
         };
 

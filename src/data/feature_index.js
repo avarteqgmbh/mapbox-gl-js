@@ -1,4 +1,3 @@
-'use strict';
 
 const assert = require('assert');
 const Point = require('point-geometry');
@@ -242,7 +241,7 @@ class FeatureIndex {
                 if (layerResult === undefined) {
                     layerResult = result[layerID] = [];
                 }
-                layerResult.push(geojsonFeature);
+                layerResult.push({ featureIndex: index, feature: geojsonFeature });
             }
         }
     }

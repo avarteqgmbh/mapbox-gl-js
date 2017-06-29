@@ -1,4 +1,3 @@
-'use strict';
 
 const Evented = require('../util/evented');
 const util = require('../util/util');
@@ -159,12 +158,11 @@ class GeoJSONSource extends Evented {
         this.workerID = this.dispatcher.send(`${this.type}.loadData`, options, (err) => {
             this._loaded = true;
             callback(err);
-
-        });
+        }, this.workerID);
     }
 
     loadTile(tile, callback) {
-        const overscaling = tile.coord.z > this.maxzoom ? Math.pow(2, tile.coord.z - this.maxzoom) : 1;
+        const message = !tile.workerID || tile.state === 'expired' ? 'loadTile' : 'reloadTile';
         const params = {
             type: this.type,
             uid: tile.uid,
@@ -173,14 +171,15 @@ class GeoJSONSource extends Evented {
             maxZoom: this.maxzoom,
             tileSize: this.tileSize,
             source: this.id,
-            overscaling: overscaling,
+            overscaling: tile.coord.z > this.maxzoom ? Math.pow(2, tile.coord.z - this.maxzoom) : 1,
             angle: this.map.transform.angle,
             pitch: this.map.transform.pitch,
+            cameraToCenterDistance: this.map.transform.cameraToCenterDistance,
+            cameraToTileDistance: this.map.transform.cameraToTileDistance(tile),
             showCollisionBoxes: this.map.showCollisionBoxes
         };
 
-        tile.workerID = this.dispatcher.send('loadTile', params, (err, data) => {
-
+        tile.workerID = this.dispatcher.send(message, params, (err, data) => {
             tile.unloadVectorData();
 
             if (tile.aborted)
@@ -198,7 +197,6 @@ class GeoJSONSource extends Evented {
             }
 
             return callback(null);
-
         }, this.workerID);
     }
 

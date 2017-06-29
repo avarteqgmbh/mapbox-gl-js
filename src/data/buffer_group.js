@@ -1,4 +1,3 @@
-'use strict';
 
 const util = require('../util/util');
 const Buffer = require('./buffer');
@@ -18,6 +17,13 @@ class BufferGroup {
         this.layoutVertexBuffer = new Buffer(arrays.layoutVertexArray,
             LayoutVertexArrayType.serialize(), Buffer.BufferType.VERTEX);
 
+        if (arrays.dynamicLayoutVertexArray) {
+            const DynamicLayoutVertexArrayType = createVertexArrayType(programInterface.dynamicLayoutAttributes);
+            this.dynamicLayoutVertexArray = new DynamicLayoutVertexArrayType(arrays.dynamicLayoutVertexArray);
+            this.dynamicLayoutVertexBuffer = new Buffer(arrays.dynamicLayoutVertexArray,
+                DynamicLayoutVertexArrayType.serialize(), Buffer.BufferType.VERTEX, true);
+        }
+
         if (arrays.elementArray) {
             this.elementBuffer = new Buffer(arrays.elementArray,
                 programInterface.elementArrayType.serialize(), Buffer.BufferType.ELEMENT);
@@ -31,7 +37,7 @@ class BufferGroup {
         this.layerData = {};
         for (const layer of layers) {
             const array = arrays.paintVertexArrays && arrays.paintVertexArrays[layer.id];
-            const programConfiguration = ProgramConfiguration.createDynamic(programInterface.paintAttributes || [], layer, zoom);
+            const programConfiguration = ProgramConfiguration.createDynamic(programInterface, layer, zoom);
             const paintVertexBuffer = array ? new Buffer(array.array, array.type, Buffer.BufferType.VERTEX) : null;
             this.layerData[layer.id] = {programConfiguration, paintVertexBuffer};
         }
@@ -49,6 +55,9 @@ class BufferGroup {
     destroy() {
         this.layoutVertexBuffer.destroy();
 
+        if (this.dynamicLayoutVertexBuffer) {
+            this.dynamicLayoutVertexBuffer.destroy();
+        }
         if (this.elementBuffer) {
             this.elementBuffer.destroy();
         }

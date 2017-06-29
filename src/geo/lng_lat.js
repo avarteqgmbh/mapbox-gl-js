@@ -1,4 +1,3 @@
-'use strict';
 // @flow
 
 const wrap = require('../util/util').wrap;
@@ -24,6 +23,7 @@ const wrap = require('../util/util').wrap;
 class LngLat {
     lng: number;
     lat: number;
+
     constructor(lng: number, lat: number) {
         if (isNaN(lng) || isNaN(lat)) {
             throw new Error(`Invalid LngLat object: (${lng}, ${lat})`);
@@ -73,6 +73,25 @@ class LngLat {
     }
 
     /**
+     * Returns a `LngLatBounds` from the coordinates extended by a given `radius`.
+     *
+     * @param {number} radius Distance in meters from the coordinates to extend the bounds.
+     * @returns {LngLatBounds} A new `LngLatBounds` object representing the coordinates extended by the `radius`.
+     * @example
+     * var ll = new mapboxgl.LngLat(-73.9749, 40.7736);
+     * ll.toBounds(100).toArray(); // = [[-73.97501862141328, 40.77351016847229], [-73.97478137858673, 40.77368983152771]]
+     */
+    toBounds(radius: number) {
+        const earthCircumferenceInMetersAtEquator = 40075017;
+        const latAccuracy = 360 * radius / earthCircumferenceInMetersAtEquator,
+            lngAccuracy = latAccuracy / Math.cos((Math.PI / 180) * this.lat);
+
+        const LngLatBounds = require('./lng_lat_bounds');
+        return new LngLatBounds(new LngLat(this.lng - lngAccuracy, this.lat - latAccuracy),
+            new LngLat(this.lng + lngAccuracy, this.lat + latAccuracy));
+    }
+
+    /**
      * Converts an array of two numbers to a `LngLat` object.
      *
      * If a `LngLat` object is passed in, the function returns it unchanged.
@@ -84,7 +103,7 @@ class LngLat {
      * var ll = mapboxgl.LngLat.convert(arr);
      * ll;   // = LngLat {lng: -73.9749, lat: 40.7736}
      */
-    static convert(input: mixed): LngLat {
+    static convert(input: LngLatLike): LngLat {
         if (input instanceof LngLat) {
             return input;
         }
@@ -98,6 +117,15 @@ class LngLat {
     }
 }
 
-/*:: export type LngLatLike = LngLat | {lng: number, lat: number} | [number, number]; */
+/**
+ * A {@link LngLat} object, an array of two numbers representing longitude and latitude,
+ * or an object with `lng` and `lat` properties.
+ *
+ * @typedef {LngLat | {lng: number, lat: number} | [number, number]} LngLatLike
+ * @example
+ * var v1 = new mapboxgl.LngLat(-122.420679, 37.772537);
+ * var v2 = [-122.420679, 37.772537];
+ */
+export type LngLatLike = LngLat | {lng: number, lat: number} | [number, number];
 
 module.exports = LngLat;

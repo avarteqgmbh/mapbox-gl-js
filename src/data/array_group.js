@@ -1,4 +1,3 @@
-'use strict';
 
 const ProgramConfiguration = require('./program_configuration');
 const createVertexArrayType = require('./vertex_array_type');
@@ -19,6 +18,8 @@ class Segment {
  * A group has:
  *
  * * A "layout" vertex array, with fixed attributes, containing values calculated from layout properties.
+ * * Zero or one dynamic "layout" vertex arrays, with fixed attributes containing values that can be
+ * * recalculated each frame on the cpu.
  * * Zero, one, or two element arrays, with fixed layout, for eventual `gl.drawElements` use.
  * * Zero or more "paint" vertex arrays keyed by layer ID, each with a dynamic layout which depends
  *   on which paint properties of that layer use data-driven-functions (property functions or
@@ -38,6 +39,11 @@ class ArrayGroup {
         const LayoutVertexArrayType = createVertexArrayType(programInterface.layoutAttributes);
         this.layoutVertexArray = new LayoutVertexArrayType();
 
+        if (programInterface.dynamicLayoutAttributes) {
+            const DynamicLayoutVertexArrayType = createVertexArrayType(programInterface.dynamicLayoutAttributes);
+            this.dynamicLayoutVertexArray = new DynamicLayoutVertexArrayType();
+        }
+
         const ElementArrayType = programInterface.elementArrayType;
         if (ElementArrayType) this.elementArray = new ElementArrayType();
 
@@ -47,7 +53,7 @@ class ArrayGroup {
         this.layerData = {};
         for (const layer of layers) {
             const programConfiguration = ProgramConfiguration.createDynamic(
-                programInterface.paintAttributes || [], layer, zoom);
+                programInterface, layer, zoom);
             this.layerData[layer.id] = {
                 layer: layer,
                 programConfiguration: programConfiguration,
@@ -99,6 +105,7 @@ class ArrayGroup {
     serialize(transferables) {
         return {
             layoutVertexArray: this.layoutVertexArray.serialize(transferables),
+            dynamicLayoutVertexArray: this.dynamicLayoutVertexArray && this.dynamicLayoutVertexArray.serialize(transferables),
             elementArray: this.elementArray && this.elementArray.serialize(transferables),
             elementArray2: this.elementArray2 && this.elementArray2.serialize(transferables),
             paintVertexArrays: serializePaintVertexArrays(this.layerData, transferables),

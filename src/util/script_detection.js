@@ -1,4 +1,3 @@
-'use strict';
 /* eslint-disable new-cap */
 
 const isChar = require('./is_char_in_unicode_block');
@@ -15,6 +14,23 @@ module.exports.allowsVerticalWritingMode = function(chars) {
         if (exports.charHasUprightVerticalOrientation(char.charCodeAt(0))) return true;
     }
     return false;
+};
+
+module.exports.allowsLetterSpacing = function(chars) {
+    for (const char of chars) {
+        if (!exports.charAllowsLetterSpacing(char.charCodeAt(0))) return false;
+    }
+    return true;
+};
+
+module.exports.charAllowsLetterSpacing = function(char) {
+    if (isChar['Arabic'](char)) return false;
+    if (isChar['Arabic Supplement'](char)) return false;
+    if (isChar['Arabic Extended-A'](char)) return false;
+    if (isChar['Arabic Presentation Forms-A'](char)) return false;
+    if (isChar['Arabic Presentation Forms-B'](char)) return false;
+
+    return true;
 };
 
 module.exports.charAllowsIdeographicBreaking = function(char) {
