@@ -111,7 +111,7 @@ class Transform {
         return this._pitch / Math.PI * 180;
     }
     set pitch(pitch: number) {
-        const p = util.clamp(pitch, 0, 60) / 180 * Math.PI;
+        const p = util.clamp(pitch, 0, 200) / 180 * Math.PI;
         if (this._pitch === p) return;
         this._unmodified = false;
         this._pitch = p;
